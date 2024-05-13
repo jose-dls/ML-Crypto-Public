@@ -53,7 +53,9 @@ Example:
 
 or
 
-> python3 lstm.py --folder \<historical data> --output \<target output folder>
+> python lstm.py --folder \<historical data> --output \<target output folder>
+
+depending on your system configuration.
 
 ## Backtesting The Model
 
