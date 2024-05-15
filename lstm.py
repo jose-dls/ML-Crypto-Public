@@ -32,6 +32,16 @@ def normalize_dataset(dataset):
 
 # Relative Strength Index (RSI)
 def calculate_rsi(close_prices, window=14):
+    """
+    Calculates Relative Strength Index for kline data.
+
+    Args:
+        close_prices: Closing prices of historical data.
+        window: Period to consider for RSI.
+
+    Returns:
+        RSI values.
+    """
     diff = close_prices.diff()
     up = diff.clip(lower=0)
     down = -diff.clip(upper=0)
@@ -42,6 +52,18 @@ def calculate_rsi(close_prices, window=14):
 
 # Average True Range (ATR)
 def calculate_atr(high, low, close, window=14):
+    """
+    Calculates Average True Range for kline data.
+
+    Args:
+        high: High prices of historical data.
+        low: Low prices of historical data.
+        close: Closing prices of historical data.
+        window: Period to consider for ATR.
+
+    Returns:
+        ATR values.
+    """
     tr = pd.concat([high - low,
                    (high - close.shift(1)).abs(),
                    (low - close.shift(1)).abs()], axis=1).max(axis=1)
@@ -50,15 +72,36 @@ def calculate_atr(high, low, close, window=14):
 
 # Commodity Channel Index (CCI)
 def calculate_cci(high, low, close, window=20):
+    """
+    Calculates Commodity Channel Index for kline data.
+
+    Args:
+        high: High prices of historical data.
+        low: Low prices of historical data.
+        close: Closing prices of historical data.
+        window: Period to consider for CCI.
+
+    Returns:
+        CCI values.
+    """
     typical_price = (high + low + close) / 3
     moving_average = typical_price.rolling(window=window).mean()
     mean_deviation = abs(typical_price - moving_average).rolling(window=window).mean()
     cci = (typical_price - moving_average) / (0.015 * mean_deviation)
     return cci
 
-def read_parquet(file, sequence_length=1, max_rows=50000000, split=True):
+def read_parquet(file, sequence_length=1, max_rows=50000000, split=False):
     """
-    Reads a parquet file for a cryptocurrency dataset and splits it into multiple parts.
+    Reads a parquet file for a cryptocurrency dataset from Binance and splits it into multiple parts.
+
+    Args:
+        file: Parquet file containing Binance historical data.
+        sequence_length: Sequence length for LSTM model. Used to calculate split.
+        max_rows: The max rows for each sub-part. Used to calculate split.
+        split: Whether to split.
+
+    Returns cryptocurrency name and list of subparts of the historical data.
+    Note: The list of parts will be a multiple of 10. Even if split is false, the returned list will have a length of at least 10.
     """
     if not os.path.exists(file):
         print(f"The file '{file}' does not exist.")
@@ -253,14 +296,14 @@ def train_model_incrementally(file_paths, folder_output, name_output, test_outpu
 
     Args:
         filepaths: A list of filepaths to the historical data. The model will be incrementally trained on these historical datasets.
-        folder_output: Target folder for the saved LSTM.
+        folder_output: Target folder for the saved LSTM model.
         name_output: Name of saved LSTM model (should be .keras)
         test_output: Filename to save simple test results (not necessarily within folder). Leave as None to not save tests.
         sequence_length: The number of timestamps within a sequence.
         epochs: Number of epochs to train model per increment.
         batch_size: Size of batch during training.
         split: Whether to split individual historical data files to multiple sets. Set this to True when facing memory issues.
-        Note: Splitting may affect the trained model.
+            Note: Splitting may affect the trained model.
         save_increments: Whether to save each increment when traving the model.
 
     The created model requires the features 'open_price', 'high_price', 'low_price', 'close_price', 'volume', 
@@ -361,7 +404,7 @@ def train_model_incrementally(file_paths, folder_output, name_output, test_outpu
         print(f"{test_loss}\n")
 
         if test_output != None:
-            # Save evaluation metrics to file (modify filename and path as needed)
+            # Save evaluation metrics to file
             with open(test_output, "a+") as f:  # Open in append mode
                 f.seek(0)  # Move to the beginning of the file
                 content = f.read()  # Check if content exists
@@ -375,7 +418,7 @@ def train_model_incrementally(file_paths, folder_output, name_output, test_outpu
     model.save(f"{folder_output}/{name_output}")
 
 def main():
-    parser = argparse.ArgumentParser(description='Train an LSTM model to predict currency closing data.')
+    parser = argparse.ArgumentParser(description='Train an LSTM model to predict cryptocurrency closing data.')
     parser.add_argument('--folder', required=True, type=str, default=None, help='Folder of historical cryptocurrency datasets.')
     parser.add_argument('--output', required=True, type=str, default=None, help='Output folder to save LSTM data.')
     parser.add_argument('--name', type=str, default="model.keras", help='Name of LSTM model (should be .keras).')
@@ -397,7 +440,7 @@ def main():
         willTrain = True
 
         file_paths = []
-        directory = "crypto-parquet-1h"
+        directory = args.folder
         # List all items in the directory
         items = os.listdir(directory)
 
