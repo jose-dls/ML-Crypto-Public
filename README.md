@@ -29,37 +29,47 @@ Once historical data has been downloaded, run the lstm.py script to train an LST
 
 Arguments:
 
---folder: Folder of historical cryptocurrency datasets
+--dataset: Historical cryptocurrency dataset in parquet format or folder of datasets.
 
---output': Output folder to save LSTM data.
+--output_folder: Output folder to save LSTM data.
 
---name': Name of LSTM model (should be .keras).
+--model_name: Filename to save LSTM model (should be .keras).
 
---test_output': Filename to save simple test results (.not necessarily within folder).
+--test_name: Filename to save simple test results.
 
---sequence': Sequence length to train LSTM model.
+--sequence: Sequence length to train LSTM model.
 
---epochs': Number of epochs to train model per increment.
+--epochs: Number of epochs to train model per increment.
 
---batch_size': Size of batch during training.
+--batch_size: Size of batch during training.
 
---split': Split individual historical data files to multiple sets. Use this argument when facing memory issues.
+--split: Split individual historical data files to multiple sets. Use this argument when facing memory issues.
 
 --no_save_increments: Don't save incremental models.
 
 Example:
 
-> python3 lstm.py --folder \<historical data> --output \<target output folder>
+> python3 lstm.py --dataset \<historical dataset> --output_folder \<target output folder>
 
 or
 
-> python lstm.py --folder \<historical data> --output \<target output folder>
+> python lstm.py --dataset \<historical dataset> --output \<target output folder>
 
 depending on your system configuration.
 
 ## Backtesting The Model
 
-Sample algorithms have been provided in QC Strats. These algorithsm work in the QuantConnect platform, however, you can adapt them to your requirements. As of this release, live trading has not been implemented for these strategies.
+Sample algorithms have been provided in QC Strats. These algorithsm work in the QuantConnect platform, however, you can adapt them to your requirements. As of this release, live trading has not been implemented for these strategies. A brief overview to using these strategies in QuantConnect:
+
+- Create an account.
+
+- Upload your model/s to the Object Store.
+
+- Create a project.
+
+- Replace the contents of main.py with the contents of your desired strategy.
+
+- Within the Initialize function, change the filepath parameter for the self.LoadModel() function assigned to self.model (it should be the first line in the Initialize function).
 
 #### Strategy 1
 

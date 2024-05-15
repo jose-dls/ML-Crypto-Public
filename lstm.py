@@ -290,15 +290,15 @@ def build_lstm_model(num_features, sequence_length):
         )
     return model
 
-def train_model_incrementally(file_paths, folder_output, name_output, test_output=None, sequence_length=3, epochs=10, batch_size=32, split=False, save_increments=True):
+def train_model_incrementally(file_paths, folder_output, model_name, test_name=None, sequence_length=3, epochs=10, batch_size=32, split=False, save_increments=True):
     """
     Incrementally trains an LSTM model that predicts the closing price of a cryptocurrency using crypto historical data.
 
     Args:
         filepaths: A list of filepaths to the historical data. The model will be incrementally trained on these historical datasets.
         folder_output: Target folder for the saved LSTM model.
-        name_output: Name of saved LSTM model (should be .keras)
-        test_output: Filename to save simple test results (not necessarily within folder). Leave as None to not save tests.
+        model_name: Name of saved LSTM model (should be .keras)
+        test_name: Filename to save simple test results. Leave as None to not save tests.
         sequence_length: The number of timestamps within a sequence.
         epochs: Number of epochs to train model per increment.
         batch_size: Size of batch during training.
@@ -382,7 +382,7 @@ def train_model_incrementally(file_paths, folder_output, name_output, test_outpu
 
         if len(file_paths) > 1 and save_increments:
             # Save model after iteration
-            model.save(f"{folder_output}/(after_{count}-{len(file_paths)}_{name})_{name_output}")
+            model.save(os.path.join(folder_output, f"(after_{count}-{len(file_paths)}_{name})_{model_name}"))
 
         # Evaluate the model on the test set
         test, _, _ = reshape_data(test_merged, sequence_length=sequence_length)
@@ -403,9 +403,9 @@ def train_model_incrementally(file_paths, folder_output, name_output, test_outpu
         print(f"Datasets: {file_paths}, After {name} ({count}/{len(file_paths)})\n")
         print(f"{test_loss}\n")
 
-        if test_output != None:
+        if test_name != None:
             # Save evaluation metrics to file
-            with open(test_output, "a+") as f:  # Open in append mode
+            with open(os.path.join(folder_output, test_name), "a+") as f:  # Open in append mode
                 f.seek(0)  # Move to the beginning of the file
                 content = f.read()  # Check if content exists
                 if not content:  # If the file is empty
@@ -414,15 +414,16 @@ def train_model_incrementally(file_paths, folder_output, name_output, test_outpu
                 f.write(f"Datasets: {file_paths}, After {name} ({count}/{len(file_paths)})\n")
                 f.write(f"{test_loss}\n")
 
-    # Save the final model
-    model.save(f"{folder_output}/{name_output}")
+    if model is not None:
+        # Save the final model
+        model.save(os.path.join(folder_output, model_name))
 
 def main():
     parser = argparse.ArgumentParser(description='Train an LSTM model to predict cryptocurrency closing data.')
-    parser.add_argument('--folder', required=True, type=str, default=None, help='Folder of historical cryptocurrency datasets.')
-    parser.add_argument('--output', required=True, type=str, default=None, help='Output folder to save LSTM data.')
-    parser.add_argument('--name', type=str, default="model.keras", help='Name of LSTM model (should be .keras).')
-    parser.add_argument('--test_output', type=str, default=None, help='Filename to save simple test results (not necessarily within folder).')
+    parser.add_argument('--dataset', required=True, type=str, default=None, help='Historical cryptocurrency dataset in parquet format or folder of datasets.')
+    parser.add_argument('--output_folder', type=str, default="./", help='Output folder to save LSTM data.')
+    parser.add_argument('--model_name', type=str, default="model.keras", help='Filename to save LSTM model (should be .keras).')
+    parser.add_argument('--test_name', type=str, default=None, help='Filename to save simple test results.')
     parser.add_argument('--sequence', type=int, default=3, help='Sequence length to train LSTM model.')
     parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train model per increment.')
     parser.add_argument('--batch_size', type=int, default=32, help='Size of batch during training.')
@@ -434,18 +435,26 @@ def main():
 
     print("TensorFlow version:", tf.__version__)
 
-    if args.folder is None:
-        willTrain = False
-    elif os.path.exists(args.folder):
-        willTrain = True
+    willTrain = False
 
+    if args.dataset is None:
+        willTrain = False
+    elif os.path.isfile(args.dataset):
+        willTrain = True
         file_paths = []
-        directory = args.folder
+        file_paths.append(args.dataset)
+    elif os.path.exists(args.dataset):
+        willTrain = True
+        file_paths = []
+        directory = args.dataset
         # List all items in the directory
         items = os.listdir(directory)
-
         # Iterate over each item
         for item in sorted(items):
+            if not os.path.isfile(os.path.join(args.dataset, item)):
+                continue
+            if not item.endswith(".parquet"):
+                continue
             # Join the directory path with the item to get the full file path
             item_path = os.path.join(directory, item)
             # Append the file path to the list
@@ -453,17 +462,17 @@ def main():
     else:
         willTrain = False
 
-    if not args.name.endswith(".keras"):
+    if not args.model_name.endswith(".keras"):
         print("Model name should end with .keras")
         sys.exit()
     
     # ======= Create Models ======= #
 
     if willTrain:
-        print("Training LSTM models.")
-        train_model_incrementally(file_paths, args.output, args.name, args.test_output, sequence_length=args.sequence, epochs=args.epochs, batch_size=args.batch_size, split=args.split, save_increments=args.no_save_increments)
+        print("Training LSTM model.")
+        train_model_incrementally(file_paths, args.output_folder, args.model_name, args.test_name, sequence_length=args.sequence, epochs=args.epochs, batch_size=args.batch_size, split=args.split, save_increments=args.no_save_increments)
     else:
-        print("Folder is not valid.")
+        print("Dataset path is not valid.")
 
 if __name__ == "__main__":
     main()
