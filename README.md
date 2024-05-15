@@ -69,7 +69,7 @@ Sample algorithms have been provided in QC Strats. These algorithsm work in the 
 
 - Replace the contents of main.py with the contents of your desired strategy.
 
-- Within the Initialize function, change the filepath parameter for the self.LoadModel() function assigned to self.model (it should be the first line in the Initialize function).
+- Within the Initialize function, change the filepath parameter for the self.LoadModel() function assigned to self.model - it should be the first line in the Initialize function. Note: sometimes QuantConnect is unable to load the model if the project is inactive for a long period. Refresh your page if this problem occurs.
 
 #### Strategy 1
 
