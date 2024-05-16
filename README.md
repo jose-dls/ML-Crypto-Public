@@ -73,7 +73,7 @@ Sample algorithms have been provided in QC Strats. These algorithsm work in the 
 
 #### Strategy 1
 
-The first strategy is a simple buy and sell algorithm. The LSTM model uses hourly data of the past day (sequence = 24). When the prediction is higher than the current price by 1%, the model buys the cryptocurrency. The strategy has a max allocation of 5 positions. Once a cryptocurrency dips 1.5% below a trailing stop loss, the strategy sells the cryptocurrency.
+The first strategy is a simple buy and sell algorithm. It leverages an LSTM model that uses hourly data of the past day (sequence = 24). When the prediction is higher than the current price by 1%, the model buys the cryptocurrency. The strategy has a max allocation of 5 positions. Once a cryptocurrency dips 1.5% below a trailing stop loss, the strategy sells the cryptocurrency. Its trading universe is predefined to 10 cryptocurrencies (defined in self.symbols_a).
 
 ![Results of Strategy 1](QC%20Strats/Strat%201%20-%20Equity.png)
 

@@ -287,7 +287,7 @@ def build_lstm_model(num_features, sequence_length):
     model.compile(
         optimizer=keras.optimizers.Adam(),
         loss=keras.losses.MeanSquaredError()
-        )
+    )
     return model
 
 def train_model_incrementally(file_paths, folder_output, model_name, test_name=None, sequence_length=3, epochs=10, batch_size=32, split=False, save_increments=True):
@@ -410,8 +410,9 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
                 content = f.read()  # Check if content exists
                 if not content:  # If the file is empty
                     f.write("Test Loss\n")  # Write header if empty
+                    f.write(f"Datasets: {file_paths}\n")
 
-                f.write(f"Datasets: {file_paths}, After {name} ({count}/{len(file_paths)})\n")
+                f.write(f"After {name} ({count}/{len(file_paths)})\n")
                 f.write(f"{test_loss}\n")
 
     if model is not None:
