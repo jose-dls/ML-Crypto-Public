@@ -10,7 +10,7 @@ import numpy as np
 from scipy import stats
 # endregion
 
-# Predict Hourly, Keep Track of Error, Buy Fixed Percentage
+# Predict Hourly, Keep Track of Error, Buy Fixed Allocation
 
 class CryptoLSTMStrategy(QCAlgorithm):
     def Initialize(self):
