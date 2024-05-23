@@ -119,6 +119,10 @@ or
 
 depending on your system configuration.
 
+## Note
+
+Please note that as of this release, the current movement models in general only have a slight improvement to random guessing. Please use them as a framework. 
+
 ## Backtesting The Model
 
 Sample algorithms have been provided in QC Strats. These algorithsm work in the QuantConnect platform, however, you can adapt them to your requirements. A brief overview to using these strategies in QuantConnect:
