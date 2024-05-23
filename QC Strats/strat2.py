@@ -14,7 +14,7 @@ from scipy import stats
 
 class CryptoLSTMStrategy(QCAlgorithm):
     def Initialize(self):
-        self.model = self.LoadModel("/TOP_10_1h_IND_Seq_24.keras") # Load model
+        self.model = self.LoadModel("/model.keras") # Load model
         self.symbols_a = ["ADAUSDT", "AVAXUSDT", "BNBUSDT", "BTCUSDT", "DOGEUSDT", "ETHUSDT", "LTCUSDT", "SHIBUSDT", "SOLUSDT", "XRPUSDT"]  # Crypto symbols to trade (replace with your desired symbols)
 
         self.SetStartDate(2024, 1, 1)  # Set start date for backtest

@@ -23,9 +23,9 @@ Example:
 
 > all_symbols = ["BTCUSDT", "ETHUSDT"]
 
-## Training The LSTM Model
+## Training The LSTM Model (Closing Price Prediction)
 
-Once historical data has been downloaded, run the lstm.py script to train an LSTM model.
+Once historical data has been downloaded, run the lstm_closing_price.py script to train an LSTM model.
 
 Arguments:
 
@@ -49,17 +49,79 @@ Arguments:
 
 Example:
 
-> python3 lstm.py --dataset \<historical dataset> --output_folder \<target output folder>
+> python3 lstm_closing_price.py --dataset \<historical dataset> --output_folder \<target output folder>
 
 or
 
-> python lstm.py --dataset \<historical dataset> --output \<target output folder>
+> python lstm_closing_price.py --dataset \<historical dataset> --output \<target output folder>
+
+depending on your system configuration.
+
+## Training The LSTM Model (Movement Prediction)
+
+Training an LSTM model to predict price movement is done similarly by running the lstm_movement.py script. 
+
+Arguments:
+
+--dataset: Historical cryptocurrency dataset in parquet format or folder of datasets.
+
+--output_folder: Output folder to save LSTM data.
+
+--model_name: Filename to save LSTM model (should be .keras).
+
+--test_name: Filename to save simple test results.
+
+--sequence: Sequence length to train LSTM model.
+
+--epochs: Number of epochs to train model per increment.
+
+--batch_size: Size of batch during training.
+
+--split: Split individual historical data files to multiple sets. Use this argument when facing memory issues.
+
+--no_save_increments: Don't save incremental models.
+
+Example:
+
+> python3 lstm_movement.py --dataset \<historical dataset> --output_folder \<target output folder>
+
+or
+
+> python lstm_movement.py --dataset \<historical dataset> --output \<target output folder>
+
+depending on your system configuration.
+
+## Training The Gradient Boosting and Random Forest Model (Movement Prediction)
+
+You can also train a Gradient Boosting Classifier model or a Random Forest Classifier model to predict price movement. Just use the gradient_boosting_movement.py or random_forest_movement.py script. Please note that unlike the other models, the Random Forest models can have a large size depending on your training dataset.
+
+Arguments:
+
+--dataset: Historical cryptocurrency dataset in parquet format or folder of datasets.
+
+--output_folder: Output folder to save LSTM data.
+
+--model_name: Filename to save LSTM model (should be .keras).
+
+--test_name: Filename to save simple test results.
+
+--n_estimators: Number of estimators for the gradient boosting/random forest model.
+
+--no_save_increments: Don't save incremental models.
+
+Example:
+
+> python3 gradient_boosting_movement.py --dataset \<historical dataset> --output_folder \<target output folder>
+
+or
+
+> python gradient_boosting_movement.py --dataset \<historical dataset> --output \<target output folder>
 
 depending on your system configuration.
 
 ## Backtesting The Model
 
-Sample algorithms have been provided in QC Strats. These algorithsm work in the QuantConnect platform, however, you can adapt them to your requirements. As of this release, live trading has not been implemented for these strategies. A brief overview to using these strategies in QuantConnect:
+Sample algorithms have been provided in QC Strats. These algorithsm work in the QuantConnect platform, however, you can adapt them to your requirements. A brief overview to using these strategies in QuantConnect:
 
 - Create an account.
 
@@ -70,6 +132,8 @@ Sample algorithms have been provided in QC Strats. These algorithsm work in the 
 - Replace the contents of main.py with the contents of your desired strategy.
 
 - Within the Initialize function, change the filepath parameter for the self.LoadModel() function assigned to self.model - it should be the first line in the Initialize function. Note: sometimes QuantConnect is unable to load the model if the project is inactive for a long period. Refresh your page if this problem occurs.
+
+- These strategies can be used for live trading if you have an available live trading node and a Binance account with sufficient funds (although this is not checked so make sure to check manually). Simply initiate live trading and follow the prompts by QuantConnect.
 
 #### Strategy 1
 
