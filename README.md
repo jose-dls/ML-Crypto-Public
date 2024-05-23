@@ -53,7 +53,7 @@ Example:
 
 or
 
-> python lstm_closing_price.py --dataset \<historical dataset> --output \<target output folder>
+> python lstm_closing_price.py --dataset \<historical dataset> --output_folder \<target output folder>
 
 depending on your system configuration.
 
@@ -87,7 +87,7 @@ Example:
 
 or
 
-> python lstm_movement.py --dataset \<historical dataset> --output \<target output folder>
+> python lstm_movement.py --dataset \<historical dataset> --output_folder \<target output folder>
 
 depending on your system configuration.
 
@@ -115,7 +115,7 @@ Example:
 
 or
 
-> python gradient_boosting_movement.py --dataset \<historical dataset> --output \<target output folder>
+> python gradient_boosting_movement.py --dataset \<historical dataset> --output_folder \<target output folder>
 
 depending on your system configuration.
 
