@@ -10,23 +10,27 @@ import numpy as np
 from scipy import stats
 # endregion
 
-# Predict Hourly, Keep Track of Error, Buy Fixed Allocation, Trailing Stop Loss
+# Predict Hourly, Keep Track of Error, Buy Fixed Allocation, Incremental Selling
 
 class CryptoLSTMStrategy(QCAlgorithm):
     def Initialize(self):
-        self.model = self.LoadModel("/model.keras") # Load model
+        self.model = self.LoadModel("/TOP_10_1h_IND_Seq_24.keras") # Load model
         self.symbols_a = ["ADAUSDT", "AVAXUSDT", "BNBUSDT", "BTCUSDT", "DOGEUSDT", "ETHUSDT", "LTCUSDT", "SHIBUSDT", "SOLUSDT", "XRPUSDT"]  # Crypto symbols to trade (replace with your desired symbols)
 
         self.SetStartDate(2024, 1, 1)  # Set start date for backtest
-        self.SetEndDate(2024, 5, 9)  # Set end date for backtest
+        self.SetEndDate(2024, 1, 31)  # Set end date for backtest
+        self.set_warm_up(timedelta(hours=100)) # Set a warmup period to populate prediction errors
+        
         self.starting_equity = 10000
         self.set_account_currency("USDT", self.starting_equity)
+        self.starting_equity = self.portfolio.cash_book["USDT"].amount  # Just in case reported value is lower than starting equity
         self.sequence_length = 24  # Number of data points for prediction
         self.res = Resolution.Hour # Resolution - Make sure to change schedule as well
         self.symbols = []
-        self.settings.free_portfolio_value = 500
+        self.settings.FreePortfolioValue = self.portfolio.cash_book["USDT"].amount * 0.05
         self.set_brokerage_model(BrokerageName.BINANCE, AccountType.CASH)
-        self.Debug(f"Starting USDT: {self.Portfolio.Cash}")
+        temp_cash = self.portfolio.cash_book["USDT"].amount
+        self.Debug(f"Starting USDT: {temp_cash}")
         self.count = 0
         self.allocation = 5
         # Store last prediction for each symbol
@@ -67,6 +71,7 @@ class CryptoLSTMStrategy(QCAlgorithm):
         # List to store symbols to buy 
         symbols_to_buy = []
 
+        self.Debug(f"Making Predictions. Count {self.count}")
         for s in self.symbols:
             symbol = self.Securities[s]
             try:
@@ -120,7 +125,7 @@ class CryptoLSTMStrategy(QCAlgorithm):
                     filtered_data = self.filter_outliers_zscore(self.prediction_errors[s])
                     # filtered_data = self.prediction_errors[s]
                     error = sum(filtered_data) / len(filtered_data)
-                    if predicted_close - error > self.NormalizedPrice(s) * 1.01: # Buy When More Than 1% Gain And Not Already Holding
+                    if predicted_close - error > self.NormalizedPrice(s) * 1.005: # Buy When More Than 0.5% Gain
                         symbols_to_buy.append(s)
             except Exception as e:
                 self.Error(e)
@@ -131,6 +136,8 @@ class CryptoLSTMStrategy(QCAlgorithm):
         # Buy Crypto
         for symbol in symbols_to_buy:
             self.buy_crypto_holdings(symbol, (self.starting_equity / self.allocation) / self.portfolio.cash_book["USDT"].amount)  # Adjust for price
+
+        self.Debug(f"Finished. Count {self.count}")
        
     def CheckLoss(self):
         for s in self.symbols:
@@ -155,9 +162,12 @@ class CryptoLSTMStrategy(QCAlgorithm):
                         self.stop_price[s] = self.local_max_price[s] * self.sell_stop
                 
                 if minute_data['close'][-1] < self.stop_price[s]:  # Latest close is lower than stop price
-                    self.sell_crypto_holdings(s, conversion=minute_data['close'][-1])
-                    self.local_max_price[s] = None
-                    self.stop_price[s] = None  # Reset after sell
+                    self.sell_crypto_holdings(s, percentage=0.5, conversion=minute_data['close'][-1])
+                    # self.local_max_price[s] = None
+                    # self.stop_price[s] = None  # Reset after sell
+
+                    self.local_max_price[s] = minute_high  # minute_data['close'][-1]
+                    self.stop_price[s] = self.local_max_price[s] * self.sell_stop  # Reset after sell
     
     def OnData(self, data):
         if self.getting_price:
@@ -177,12 +187,18 @@ class CryptoLSTMStrategy(QCAlgorithm):
             symbol = self.Securities[s]
             balance += (self.starting_equity / len(symbols)) * (symbol.Price / self.starting_prices[s])
         return balance
+    
+    def on_warmup_finished(self):
+        # Perform a prediction/buy after warmup
+        self.Trade()
 
     def buy_crypto_holdings(self, symbol, percentage):
         """
             Symbol: Symbol to buy
             Percentage: Percentage of available balance to use
         """
+        if self.is_warming_up:  # No buying during warmup
+            return
         try:
             crypto = self.Securities[symbol]
             base_currency = crypto.BaseCurrency
@@ -227,6 +243,8 @@ class CryptoLSTMStrategy(QCAlgorithm):
             Symbol: Symbol to sell
             Percentage: Percentage of symbol holding to sell
         """
+        if self.is_warming_up:  # No selling during warmup
+            return
         try:
             crypto = self.securities[symbol]
             base_currency = crypto.base_currency
