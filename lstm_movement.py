@@ -10,7 +10,6 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 from math import ceil
-import gc
 import argparse
 
 def normalize_dataset(dataset):
@@ -327,20 +326,16 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir=f"{folder_output}/logs")
 
     for crypto in file_paths:
-        gc.collect()
         count += 1
         name, datasets = read_parquet(crypto, sequence_length, split=split)
         print(f"Training on: {name}")
 
         train, tests = split_list_percentages(datasets)
         del datasets
-        gc.collect()
         if split == False:
             train = [build_merged_dict(train)]
-        gc.collect()
         test_merged = build_merged_dict(tests)
         del tests
-        gc.collect()
 
         # Define EarlyStopping callback
         early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
@@ -352,11 +347,9 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
             movement = train_set['movement']
             train_reshaped, _, _ = reshape_data(train_set, sequence_length=sequence_length)
             del train_set
-            gc.collect()
             movement_validation = validation_set['movement']
             validation_reshaped, _, _ = reshape_data(validation_set, sequence_length=sequence_length)
             del validation_set
-            gc.collect()
 
             # Update num_features if it's the first iteration
             if num_features == 0:
@@ -368,26 +361,20 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
             y_train = np.array(movement[sequence_length:])  # Align Movement (Next Rank For Previous Time Sequence Group)
             
             del train_reshaped
-            gc.collect()
 
             # Prepare validation data
             X_val = validation_reshaped[:-1, :, :]
             y_val = np.array(movement_validation[sequence_length:])
 
             del validation_reshaped
-            gc.collect()
 
             # Train the model on the prepared data
             model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val), callbacks=[early_stopping, tensorboard_callback])
             
             del X_train
-            gc.collect()
             del y_train
-            gc.collect()
             del X_val
-            gc.collect()
             del y_val
-            gc.collect()
 
         if len(file_paths) > 1 and save_increments:
             # Save model after iteration
@@ -397,16 +384,13 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
         movement_test = test_merged['movement']
         test, _, _ = reshape_data(test_merged, sequence_length=sequence_length)
         del test_merged
-        gc.collect()
         X_test = test[:-1, :, :]
         y_test = np.array(movement_test[sequence_length:])
         del test
-        gc.collect()
         test_metrics = model.evaluate(X_test, y_test, callbacks=[tensorboard_callback])
         predictions = model.predict(X_test)
 
         del X_test
-        gc.collect()
         
         total = len(y_test)
         total_0 = 0
@@ -426,7 +410,6 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
                 correct_1 += 1
 
         del y_test
-        gc.collect()
 
         # Print the evaluation metrics
         print(f"Datasets: {file_paths}, After {name} ({count}/{len(file_paths)})\n")

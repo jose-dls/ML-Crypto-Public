@@ -9,7 +9,6 @@ from tensorflow.keras.models import Sequential, save_model
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 from math import ceil
-import gc
 import argparse
 
 def normalize_dataset(dataset):
@@ -320,20 +319,16 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
     tensorboard_callback = keras.callbacks.TensorBoard(log_dir=f"{folder_output}/logs")
 
     for crypto in file_paths:
-        gc.collect()
         count += 1
         name, datasets = read_parquet(crypto, sequence_length, split=split)
         print(f"Training on: {name}")
 
         train, tests = split_list_percentages(datasets)
         del datasets
-        gc.collect()
         if split == False:
             train = [build_merged_dict(train)]
-        gc.collect()
         test_merged = build_merged_dict(tests)
         del tests
-        gc.collect()
 
         # Define EarlyStopping callback
         early_stopping = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
@@ -344,10 +339,8 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
             train_set, validation_set = split_dict_by_percentage(part_data, 0.8)
             train_reshaped, _, _ = reshape_data(train_set, sequence_length=sequence_length)
             del train_set
-            gc.collect()
             validation_reshaped, _, _ = reshape_data(validation_set, sequence_length=sequence_length)
             del validation_set
-            gc.collect()
 
             # Update num_features if it's the first iteration
             if num_features == 0:
@@ -359,26 +352,20 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
             y_train = train_reshaped[1:, -1, 3]  # Extract Closing Price From Last Timestep In Succeeding Time Sequence Group (Next Closing Price For Previous Time Sequence Group)
             
             del train_reshaped
-            gc.collect()
 
             # Prepare validation data
             X_val = validation_reshaped[:-1, :, :]
             y_val = validation_reshaped[1:, -1, 3]
 
             del validation_reshaped
-            gc.collect()
 
             # Train the model on the prepared data
             model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_val, y_val), callbacks=[early_stopping, tensorboard_callback])
             
             del X_train
-            gc.collect()
             del y_train
-            gc.collect()
             del X_val
-            gc.collect()
             del y_val
-            gc.collect()
 
         if len(file_paths) > 1 and save_increments:
             # Save model after iteration
@@ -387,17 +374,13 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
         # Evaluate the model on the test set
         test, _, _ = reshape_data(test_merged, sequence_length=sequence_length)
         del test_merged
-        gc.collect()
         X_test = test[:-1, :, :]
         y_test = test[1:, -1, 3]
         del test
-        gc.collect()
         test_loss = model.evaluate(X_test, y_test, callbacks=[tensorboard_callback])
 
         del X_test
-        gc.collect()
         del y_test
-        gc.collect()
 
         # Print the evaluation metrics
         print(f"Datasets: {file_paths}, After {name} ({count}/{len(file_paths)})\n")
