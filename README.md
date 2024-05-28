@@ -139,12 +139,12 @@ Sample algorithms have been provided in QC Strats. These algorithsm work in the 
 
 - These strategies can be used for live trading if you have an available live trading node and a Binance account with sufficient funds (although this is not checked so make sure to check manually). Simply initiate live trading and follow the prompts by QuantConnect.
 
-#### Strategy 1
+#### LSTM Closing Price Prediction With Half Sell Trailing Stop Loss Strategy
 
-The first strategy is a simple buy and sell algorithm. It leverages an LSTM model that uses hourly data of the past day (sequence = 24). When the prediction is higher than the current price by 1%, the model buys the cryptocurrency. The strategy has a max allocation of 5 positions. Once a cryptocurrency dips 1.5% below a trailing stop loss, the strategy sells the cryptocurrency. Its trading universe is predefined to 10 cryptocurrencies (defined in self.symbols_a).
+This strategy is a simple buy and sell algorithm. It leverages an LSTM model that uses hourly data of the past day (sequence = 24). When the prediction is higher than the current price by 0.5%, the model buys the cryptocurrency. The strategy has a fixed buying allocation of 1/5 of the starting equity per position opened. Once a cryptocurrency dips 1.5% below a trailing stop loss, the strategy sells half of the assets available of the cryptocurrency. Its trading universe is predefined to 10 cryptocurrencies (defined in self.symbols_a).
 
-![Results of Strategy 1](QC%20Strats/Strat%201%20-%20Equity.png)
+![Results of Strategy](QC%20Strats/lstm_closing_price_trailing_half/lstm_closing_price_trailing_half%20-%20Equity.png)
 
 A benchmark for the backtesting period is set to buying all the target cryptocurrencies at the start and holding until the end.
 
-![Benchmark of Strategy 1](QC%20Strats/Strat%201%20-%20Benchmark.png)
+![Benchmark of Strategy](QC%20Strats/lstm_closing_price_trailing_half/lstm_closing_price_trailing_half%20-%20Benchmark.png)

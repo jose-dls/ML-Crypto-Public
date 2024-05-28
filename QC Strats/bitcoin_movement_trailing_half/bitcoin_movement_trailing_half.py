@@ -8,30 +8,41 @@ from datetime import date, timedelta
 import pandas as pd
 import numpy as np
 from scipy import stats
+from sklearn.ensemble import GradientBoostingClassifier
+import joblib
 # endregion
 
-# Predict Hourly, Keep Track of Error, Buy Fixed Allocation, Trailing Stop Loss
+################################################################################
+#                 Gradient Boosting Bitcoin Movement Prediction                #
+#                  With Half Sell Trailing Stop Loss Strategy                  #
+#                                                                              #
+# This strategy predicts hourly and buys bitcoin when predicted to have an     #
+# upwards movement in the next hour. When buying, all available funds are used #
+# to open a position. A trailing stop loss is applied for half sell orders     #
+# (half of the available Bitcoin are sold once a 1.5% trailing loss is hit).   #
+################################################################################
 
 class CryptoLSTMStrategy(QCAlgorithm):
     def Initialize(self):
-        self.model = self.LoadModel("/model.keras") # Load model
-        self.symbols_a = ["ADAUSDT", "AVAXUSDT", "BNBUSDT", "BTCUSDT", "DOGEUSDT", "ETHUSDT", "LTCUSDT", "SHIBUSDT", "SOLUSDT", "XRPUSDT"]  # Crypto symbols to trade (replace with your desired symbols)
+        self.model = self.LoadModel("/model.pkl") # Load model
+        self.symbols_a = ["BTCUSDT"]  # Crypto symbols to trade (replace with your desired symbols)
 
         self.SetStartDate(2024, 1, 1)  # Set start date for backtest
-        self.SetEndDate(2024, 5, 9)  # Set end date for backtest
+        self.SetEndDate(2024, 1, 31)  # Set end date for backtest
+        
         self.starting_equity = 10000
         self.set_account_currency("USDT", self.starting_equity)
-        self.sequence_length = 24  # Number of data points for prediction
+        self.starting_equity = self.portfolio.cash_book["USDT"].amount  # Just in case reported value is lower than starting equity
+        self.sequence_length = 1  # Number of data points for prediction
         self.res = Resolution.Hour # Resolution - Make sure to change schedule as well
         self.symbols = []
-        self.settings.free_portfolio_value = 500
+        self.settings.FreePortfolioValue = self.portfolio.cash_book["USDT"].amount * 0.05
         self.set_brokerage_model(BrokerageName.BINANCE, AccountType.CASH)
-        self.Debug(f"Starting USDT: {self.Portfolio.Cash}")
+        temp_cash = self.portfolio.cash_book["USDT"].amount
+        self.Debug(f"Starting USDT: {temp_cash}")
         self.count = 0
         self.allocation = 5
         # Store last prediction for each symbol
-        self.last_prediction = {}
-        self.prediction_errors = {}
         self.holdings = set()
         self.historical_min_data = {}
         self.historical_max_data = {}
@@ -44,8 +55,6 @@ class CryptoLSTMStrategy(QCAlgorithm):
             try:
                 self.AddCrypto(symbol, resolution=self.res)
                 self.symbols.append(symbol)
-                self.last_prediction[symbol] = None
-                self.prediction_errors[symbol] = []
                 self.historical_min_data[symbol] = None
                 self.historical_max_data[symbol] = None
                 self.historical_min_price[symbol] = None
@@ -66,7 +75,9 @@ class CryptoLSTMStrategy(QCAlgorithm):
     def Trade(self):
         # List to store symbols to buy 
         symbols_to_buy = []
+        symbols_to_sell = []
 
+        self.Debug(f"Making Predictions. Count {self.count}")
         for s in self.symbols:
             symbol = self.Securities[s]
             try:
@@ -101,38 +112,36 @@ class CryptoLSTMStrategy(QCAlgorithm):
                 reshaped_data = self.ReshapeData(normalized_data)
 
                 # Make prediction using the model
-                predicted_close = self.model.predict(reshaped_data)[0][0]  # Assuming single output
+                predicted_close = self.model.predict(reshaped_data)[0]  # Assuming single output
 
                 # Skip if no prediction
                 if predicted_close is None or math.isnan(predicted_close):
                     continue
                 
-                # Update Prediction Errors
-                if self.last_prediction[s] is not None:
-                    self.prediction_errors[s].append(self.last_prediction[s] - self.NormalizedPrice(s))
-                    self.prediction_errors[s] = self.prediction_errors[s][-100:]
-
-                # Update Last Prediciton
-                self.last_prediction[s] = predicted_close
-
-                # Calculate Buy Indicators
-                if len(self.prediction_errors[s]) >= 3:
-                    filtered_data = self.filter_outliers_zscore(self.prediction_errors[s])
-                    # filtered_data = self.prediction_errors[s]
-                    error = sum(filtered_data) / len(filtered_data)
-                    if predicted_close - error > self.NormalizedPrice(s) * 1.01: # Buy When More Than 1% Gain And Not Already Holding
-                        symbols_to_buy.append(s)
+                # Make Buy/Sell Signals
+                # if predicted_close == 0:  # Sell When Prediction Is Decrease
+                #     symbols_to_sell.append(s)
+                if predicted_close == 1:  # Buy When Prediction Is Increase
+                    symbols_to_buy.append(s)
             except Exception as e:
                 self.Error(e)
                 continue
         
         self.count += 1
-
+        
+        # # Sell Crypto
+        # for symbol in symbols_to_sell:
+        #     self.sell_crypto_holdings(symbol)
+        
         # Buy Crypto
         for symbol in symbols_to_buy:
-            self.buy_crypto_holdings(symbol, (self.starting_equity / self.allocation) / self.portfolio.cash_book["USDT"].amount)  # Adjust for price
+            self.buy_crypto_holdings(symbol, 1)  # Adjust for price
+
+        self.Debug(f"Finished. Count {self.count}")
        
     def CheckLoss(self):
+        if self.is_warming_up:
+            return
         for s in self.symbols:
             if s in self.holdings:
                 symbol = self.Securities[s]
@@ -155,9 +164,13 @@ class CryptoLSTMStrategy(QCAlgorithm):
                         self.stop_price[s] = self.local_max_price[s] * self.sell_stop
                 
                 if minute_data['close'][-1] < self.stop_price[s]:  # Latest close is lower than stop price
-                    self.sell_crypto_holdings(s, conversion=minute_data['close'][-1])
-                    self.local_max_price[s] = None
-                    self.stop_price[s] = None  # Reset after sell
+                    # self.sell_crypto_holdings(s, conversion=minute_data['close'][-1])
+                    # self.local_max_price[s] = None
+                    # self.stop_price[s] = None  # Reset after sell
+                    
+                    self.sell_crypto_holdings(s, percentage=0.5, conversion=minute_data['close'][-1])
+                    self.local_max_price[s] = minute_high
+                    self.stop_price[s] = self.local_max_price[s] * self.sell_stop  # Reset after sell
     
     def OnData(self, data):
         if self.getting_price:
@@ -173,16 +186,29 @@ class CryptoLSTMStrategy(QCAlgorithm):
         if self.getting_price:
             return self.starting_equity
         balance = 0
+        count = 0
         for s in symbols:
-            symbol = self.Securities[s]
-            balance += (self.starting_equity / len(symbols)) * (symbol.Price / self.starting_prices[s])
+            if self.starting_prices[s] > 0:
+                count += 1
+        
+        for s in symbols:
+            if self.starting_prices[s] > 0:
+                symbol = self.Securities[s]
+                balance += (self.starting_equity / count) * (symbol.Price / self.starting_prices[s])
+        
         return balance
+    
+    def on_warmup_finished(self):
+        # Perform a prediction/buy after warmup
+        self.Trade()
 
     def buy_crypto_holdings(self, symbol, percentage):
         """
             Symbol: Symbol to buy
             Percentage: Percentage of available balance to use
         """
+        if self.is_warming_up:  # No buying during warmup
+            return
         try:
             crypto = self.Securities[symbol]
             base_currency = crypto.BaseCurrency
@@ -227,6 +253,8 @@ class CryptoLSTMStrategy(QCAlgorithm):
             Symbol: Symbol to sell
             Percentage: Percentage of symbol holding to sell
         """
+        if self.is_warming_up:  # No selling during warmup
+            return
         try:
             crypto = self.securities[symbol]
             base_currency = crypto.base_currency
@@ -325,8 +353,8 @@ class CryptoLSTMStrategy(QCAlgorithm):
         This function reshapes data for the LSTM model.
         """
         # Assuming a 2D array for the model with shape (sequence_length, features)
-        desired_columns = ["open", "high", "low", "close", "volume", "SMA_5", "EMA_10", "RSI_14", "ATR_14", "CCI_20"]
-        return np.reshape(normalized_data[desired_columns].values, (1, self.sequence_length, len(desired_columns)))
+        desired_columns = ["close", "volume", "SMA_5", "EMA_10", "RSI_14", "ATR_14", "CCI_20"]
+        return np.reshape(normalized_data[desired_columns].values, (1, len(desired_columns)))
 
     # Relative Strength Index (RSI)
     def calculate_rsi(self, close_prices, window=14):
@@ -354,26 +382,8 @@ class CryptoLSTMStrategy(QCAlgorithm):
         cci = (typical_price - moving_average) / (0.015 * mean_deviation)
         return cci
 
-    def filter_outliers_zscore(self, data, threshold=3):
-        """
-        Filters outliers from a list using Z-scores.
-
-        Args:
-            data (list): The list of data to filter.
-            threshold (float, optional): The number of standard deviations 
-                outside the mean to consider an outlier. Defaults to 3.
-
-        Returns:
-            list: A new list containing only non-outlier values.
-        """
-        mean = np.mean(data)
-        std = np.std(data)
-        z_scores = stats.zscore(data)
-        filtered_data = [x for x, score in zip(data, z_scores) if abs(score) <= threshold]
-        return filtered_data
-
-    def LoadModel(self, file_name):
+    def LoadModel(self, file_name) -> GradientBoostingClassifier:
         # Load the machine learning model from the object store
         file_path = self.object_store.get_file_path(file_name)
         
-        return tf.keras.models.load_model(file_path, compile=False)  # Return the loaded model
+        return joblib.load(file_path)  # Return the loaded model

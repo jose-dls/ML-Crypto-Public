@@ -10,7 +10,16 @@ import numpy as np
 from scipy import stats
 # endregion
 
-# Predict Hourly, Keep Track of Error, Buy Fixed Allocation, Incremental Selling
+################################################################################
+#   LSTM Closing Price Prediction With Half Sell Trailing Stop Loss Strategy   #
+#                                                                              #
+# This strategy predicts hourly and buys cryptocurrencies predicted to         #
+# increase above a certain percentage. The error of each prediction (per       #
+# cryptocurrency) is saved (max 100) for better accuracy. Cryptocurrencies     #
+# are bought at a fix allocation (1/5 of starting equity). A trailing stop     #
+# loss is applied for half sell orders (half of the available assets of a      #
+# cryptocurrency are sold once a 1.5% trailing loss is hit).                   #
+################################################################################
 
 class CryptoLSTMStrategy(QCAlgorithm):
     def Initialize(self):
@@ -162,14 +171,17 @@ class CryptoLSTMStrategy(QCAlgorithm):
                         self.stop_price[s] = self.local_max_price[s] * self.sell_stop
                 
                 if minute_data['close'][-1] < self.stop_price[s]:  # Latest close is lower than stop price
-                    self.sell_crypto_holdings(s, percentage=0.5, conversion=minute_data['close'][-1])
+                    # self.sell_crypto_holdings(s, conversion=minute_data['close'][-1])
                     # self.local_max_price[s] = None
                     # self.stop_price[s] = None  # Reset after sell
-
-                    self.local_max_price[s] = minute_high  # minute_data['close'][-1]
+                    
+                    self.sell_crypto_holdings(s, percentage=0.5, conversion=minute_data['close'][-1])
+                    self.local_max_price[s] = minute_high
                     self.stop_price[s] = self.local_max_price[s] * self.sell_stop  # Reset after sell
     
     def OnData(self, data):
+        if self.is_warming_up:
+            return
         if self.getting_price:
             for s in self.symbols:
                 symbol = self.Securities[s]
@@ -180,7 +192,7 @@ class CryptoLSTMStrategy(QCAlgorithm):
         return
 
     def CustomBenchmark(self, symbols):
-        if self.getting_price:
+        if self.getting_price or self.is_warming_up:
             return self.starting_equity
         balance = 0
         for s in symbols:
