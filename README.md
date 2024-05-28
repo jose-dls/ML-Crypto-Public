@@ -148,3 +148,13 @@ This strategy is a simple buy and sell algorithm. It leverages an LSTM model tha
 A benchmark for the backtesting period is set to buying all the target cryptocurrencies at the start and holding until the end.
 
 ![Benchmark of Strategy](QC%20Strats/lstm_closing_price_trailing_half/lstm_closing_price_trailing_half%20-%20Benchmark.png)
+
+#### Gradient Boosting Movement Prediction With Half Sell Trailing Stop Loss Strategy
+
+This strategy is similar to the previous one, however, it leverages a gradient boosting model that uses last hour's data to predict the current hour's movement in price. Every hour, it buys cryptocurrencies that are predicted to have an upwards movement. When buying, all available funds are used to open a position and are split equally among the cryptocurrencies to buy. Once a cryptocurrency dips 1.5% below a trailing stop loss, the strategy sells half of the assets available of the cryptocurrency. Its trading universe is predefined to 10 cryptocurrencies (defined in self.symbols_a).
+
+![Results of Strategy](QC%20Strats/portfolio_movement_trailing_half/portfolio_movement_trailing_half%20-%20Equity.png)
+
+A benchmark for the backtesting period is set to buying all the target cryptocurrencies at the start and holding until the end.
+
+![Benchmark of Strategy](QC%20Strats/portfolio_movement_trailing_half/portfolio_movement_trailing_half%20-%20Benchmark.png)
