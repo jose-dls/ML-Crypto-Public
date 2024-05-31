@@ -24,6 +24,9 @@ from scipy import stats
 class CryptoLSTMStrategy(QCAlgorithm):
     def Initialize(self):
         self.model = self.LoadModel("/model.keras") # Load model
+        self.sequence_length = 24  # Number of data points for prediction
+        self.res = Resolution.Hour # Resolution - Make sure to change schedule as well
+        
         self.symbols_a = ["ADAUSDT", "AVAXUSDT", "BNBUSDT", "BTCUSDT", "DOGEUSDT", "ETHUSDT", "LTCUSDT", "SHIBUSDT", "SOLUSDT", "XRPUSDT"]  # Crypto symbols to trade (replace with your desired symbols)
 
         self.SetStartDate(2024, 1, 1)  # Set start date for backtest
@@ -33,8 +36,6 @@ class CryptoLSTMStrategy(QCAlgorithm):
         self.starting_equity = 10000
         self.set_account_currency("USDT", self.starting_equity)
         self.starting_equity = self.portfolio.cash_book["USDT"].amount  # Just in case reported value is lower than starting equity
-        self.sequence_length = 24  # Number of data points for prediction
-        self.res = Resolution.Hour # Resolution - Make sure to change schedule as well
         self.symbols = []
         self.settings.FreePortfolioValue = self.portfolio.cash_book["USDT"].amount * 0.05
         self.set_brokerage_model(BrokerageName.BINANCE, AccountType.CASH)
