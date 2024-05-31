@@ -90,7 +90,7 @@ def calculate_cci(high, low, close, window=20):
     cci = (typical_price - moving_average) / (0.015 * mean_deviation)
     return cci
 
-def read_parquet(file, sequence_length=1, max_rows=50000000, split=False):
+def read_parquet(file, sequence_length=1, threshold:float=0, max_rows=50000000, split=False):
     """
     Reads a parquet file for a cryptocurrency dataset from Binance and splits it into multiple parts.
 
@@ -142,8 +142,10 @@ def read_parquet(file, sequence_length=1, max_rows=50000000, split=False):
     # Normalize dataset
     dataset = normalize_dataset(dataset)
 
+    percent = threshold / 100
+
     # Create Movement Indicator
-    dataset['movement'] = np.where(dataset['close_price'] - dataset['open_price'] >= 0, 1, 0)
+    dataset['movement'] = np.where((dataset['close_price'] - dataset['open_price']) / dataset['open_price'] >= percent, 1, 0)
     dataset['movement'] = [ [0, 1] if val == 1 else [1, 0] for val in dataset['movement'] ]
 
     if split:
@@ -296,7 +298,7 @@ def build_LSTM_model(num_features, sequence_length):
     )
     return model
 
-def train_model_incrementally(file_paths, folder_output, model_name, test_name=None, sequence_length=3, epochs=10, batch_size=32, split=False, save_increments=True):
+def train_model_incrementally(file_paths, folder_output, model_name, test_name=None, sequence_length=3, epochs=10, batch_size=32, threshold:float=0, split=False, save_increments=True):
     """
     Incrementally trains an LSTM model that predicts the closing price of a cryptocurrency using crypto historical data.
 
@@ -327,7 +329,7 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
 
     for crypto in file_paths:
         count += 1
-        name, datasets = read_parquet(crypto, sequence_length, split=split)
+        name, datasets = read_parquet(crypto, sequence_length=sequence_length, threshold=threshold, split=split)
         print(f"Training on: {name}")
 
         train, tests = split_list_percentages(datasets)
@@ -440,6 +442,7 @@ def main():
     parser.add_argument('--sequence', type=int, default=3, help='Sequence length to train LSTM model.')
     parser.add_argument('--epochs', type=int, default=10, help='Number of epochs to train model per increment.')
     parser.add_argument('--batch_size', type=int, default=32, help='Size of batch during training.')
+    parser.add_argument('--threshold', type=float, default=0, help='Percentage value to set threshold of movement (returns 1 for above and 0 for below).')
     parser.add_argument('--split', action='store_true', help='Split individual historical data files to multiple sets. Use this argument when facing memory issues.')
     parser.add_argument('--no_save_increments', action='store_false', help='Don\'t save incremental models.')
     args = parser.parse_args()
@@ -483,7 +486,7 @@ def main():
 
     if willTrain:
         print("Training LSTM model.")
-        train_model_incrementally(file_paths, args.output_folder, args.model_name, args.test_name, sequence_length=args.sequence, epochs=args.epochs, batch_size=args.batch_size, split=args.split, save_increments=args.no_save_increments)
+        train_model_incrementally(file_paths, args.output_folder, args.model_name, args.test_name, sequence_length=args.sequence, epochs=args.epochs, batch_size=args.batch_size, threshold=args.threshold, split=args.split, save_increments=args.no_save_increments)
     else:
         print("Dataset path is not valid.")
 

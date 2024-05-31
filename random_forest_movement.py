@@ -88,7 +88,7 @@ def calculate_cci(high, low, close, window=20):
     cci = (typical_price - moving_average) / (0.015 * mean_deviation)
     return cci
 
-def read_parquet(file):
+def read_parquet(file, threshold:float=0):
     """
     Reads a parquet file for a cryptocurrency dataset from Binance.
 
@@ -137,12 +137,14 @@ def read_parquet(file):
     # Normalize dataset
     dataset = normalize_dataset(dataset)
 
+    percent = threshold / 100
+
     # Create Movement Indicator
-    dataset['movement'] = np.where(dataset['close_price'] - dataset['open_price'] >= 0, 1, 0)
+    dataset['movement'] = np.where((dataset['close_price'] - dataset['open_price']) / dataset['open_price'] >= percent, 1, 0)
 
     return crypto_name, dataset
 
-def train_model_incrementally(file_paths, folder_output, model_name, test_name=None, n_est=100, save_increments=True):
+def train_model_incrementally(file_paths, folder_output, model_name, test_name=None, n_est=100, threshold:float=0, save_increments=True):
     """
     Incrementally trains a random forest model that predicts the up or down movement of a cryptocurrency using crypto historical data.
 
@@ -170,7 +172,7 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
         for crypto in file_paths:
             count += 1
             n_est_total += n_est // len(file_paths)
-            name, dataset = read_parquet(crypto)
+            name, dataset = read_parquet(crypto, threshold=threshold)
             print(f"Training on: {name}, Adding {n_est // len(file_paths)} Estimators, Total Estimators: {n_est_total}")
 
             # features = ['open_price', 'high_price', 'low_price','close_price', 'volume', 'SMA_5', 'EMA_10', 'RSI_14', 'ATR_14', 'CCI_20']
@@ -196,17 +198,34 @@ def train_model_incrementally(file_paths, folder_output, model_name, test_name=N
             accuracy = accuracy_score(y_test, predictions)
             print("Accuracy:", accuracy)
 
+            total = len(y_test)
+            total_0 = 0
+
+            for m in y_test:
+                if m == 0:
+                    total_0 += 1
+            
+            total_1 = total - total_0
+
+            correct_0 = 0
+            correct_1 = 0
+            for a, b in zip(y_test, predictions):
+                if a == 0 and b == 0:
+                    correct_0 += 1
+                if a == 1 and b == 1:
+                    correct_1 += 1
+
             if test_name != None:
                 # Save evaluation metrics to file
                 with open(os.path.join(folder_output, test_name), "a+") as f:  # Open in append mode
                     f.seek(0)  # Move to the beginning of the file
                     content = f.read()  # Check if content exists
                     if not content:  # If the file is empty
-                        f.write("Test Accuracy\n")  # Write header if empty
+                        f.write("Test Accuracy / Correct Down / Correct Up\n")  # Write header if empty
                         f.write(f"Datasets: {file_paths}\n")
 
                     f.write(f"After {name} ({count}/{len(file_paths)})\n")
-                    f.write(f"{accuracy}\n")
+                    f.write(f"{accuracy}, {correct_0 / total_0 * 100}%, {correct_1 / total_1 * 100}%\n")
             
             pbar.update(1)
     
@@ -221,6 +240,7 @@ def main():
     parser.add_argument('--model_name', type=str, default="model.pkl", help='Filename to save random forest model (should be .pkl).')
     parser.add_argument('--test_name', type=str, default=None, help='Filename to save simple test results.')
     parser.add_argument('--n_estimators', type=int, default=100, help='Number of estimators for the random forest model.')
+    parser.add_argument('--threshold', type=float, default=0, help='Percentage value to set threshold of movement (returns 1 for above and 0 for below).')
     parser.add_argument('--no_save_increments', action='store_false', help='Don\'t save incremental models.')
     args = parser.parse_args()
     
@@ -259,7 +279,7 @@ def main():
 
     if willTrain:
         print("Training random forest model.")
-        train_model_incrementally(file_paths, args.output_folder, args.model_name, args.test_name, save_increments=args.no_save_increments, n_est=args.n_estimators)
+        train_model_incrementally(file_paths, args.output_folder, args.model_name, args.test_name, n_est=args.n_estimators, threshold=args.threshold, save_increments=args.no_save_increments)
     else:
         print("Dataset path is not valid.")
 

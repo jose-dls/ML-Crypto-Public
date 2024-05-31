@@ -77,6 +77,8 @@ Arguments:
 
 --batch_size: Size of batch during training.
 
+--threshold: Percentage value to set threshold of movement (returns 1 for above and 0 for below).
+
 --split: Split individual historical data files to multiple sets. Use this argument when facing memory issues.
 
 --no_save_increments: Don't save incremental models.
@@ -106,6 +108,8 @@ Arguments:
 --test_name: Filename to save simple test results.
 
 --n_estimators: Number of estimators for the gradient boosting/random forest model.
+
+--threshold: Percentage value to set threshold of movement (returns 1 for above and 0 for below).
 
 --no_save_increments: Don't save incremental models.
 

@@ -343,8 +343,8 @@ class CryptoLSTMStrategy(QCAlgorithm):
             # Get start date
             today = date.today()
             # Calculate the date 5 years ago
-            two_years_ago = today - timedelta(days=365 * 5)
-            historical_data = self.History(sec.Symbol, two_years_ago, today, Resolution.Daily)  # Resolution Does Not Need To Be Precise For Max/Min Price
+            five_years_ago = today - timedelta(days=365 * 5)
+            historical_data = self.History(sec.Symbol, five_years_ago, today, Resolution.Daily)  # Resolution Does Not Need To Be Precise For Max/Min Price
             self.historical_min_price[symbol] = historical_data["close"].values.min()
             self.historical_max_price[symbol] = historical_data["close"].values.max()
         return (sec.Price - self.historical_min_price[symbol]) / (self.historical_max_price[symbol] - self.historical_min_price[symbol])
