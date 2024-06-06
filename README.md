@@ -23,7 +23,9 @@ Example:
 
 > all_symbols = ["BTCUSDT", "ETHUSDT"]
 
-## Training The LSTM Model (Closing Price Prediction)
+## Training Models
+
+### Training The LSTM Model (Closing Price Prediction)
 
 Once historical data has been downloaded, run the lstm_closing_price.py script to train an LSTM model.
 
@@ -57,7 +59,7 @@ or
 
 depending on your system configuration.
 
-## Training The LSTM Model (Movement Prediction)
+### Training The LSTM Model (Movement Prediction)
 
 Training an LSTM model to predict price movement is done similarly by running the lstm_movement.py script. 
 
@@ -93,7 +95,7 @@ or
 
 depending on your system configuration.
 
-## Training The Gradient Boosting and Random Forest Model (Movement Prediction)
+### Training The Gradient Boosting and Random Forest Model (Movement Prediction)
 
 You can also train a Gradient Boosting Classifier model or a Random Forest Classifier model to predict price movement. Just use the gradient_boosting_movement.py or random_forest_movement.py script. Please note that unlike the other models, the Random Forest models can have a large size depending on your training dataset.
 
@@ -123,9 +125,9 @@ or
 
 depending on your system configuration.
 
-## Note
+### Note
 
-Please note that as of this release, the current movement models in general only have a slight improvement to random guessing. Please use them as a framework. 
+Please note that as of this release, the default parameters for the movement models in general only have a slight improvement to random guessing. Please use them as a framework to suit your needs.
 
 ## Backtesting The Model
 
@@ -143,7 +145,7 @@ Sample algorithms have been provided in QC Strats. These algorithsm work in the 
 
 - These strategies can be used for live trading if you have an available live trading node and a Binance account with sufficient funds (although this is not checked so make sure to check manually). Simply initiate live trading and follow the prompts by QuantConnect.
 
-#### LSTM Closing Price Prediction With Half Sell Trailing Stop Loss Strategy
+### LSTM Closing Price Prediction With Half Sell Trailing Stop Loss Strategy
 
 This strategy is a simple buy and sell algorithm. It leverages an LSTM model that uses hourly data of the past day (sequence = 24). When the prediction is higher than the current price by 0.5%, the model buys the cryptocurrency. The strategy has a fixed buying allocation of 1/5 of the starting equity per position opened. Once a cryptocurrency dips 1.5% below a trailing stop loss, the strategy sells half of the assets available of the cryptocurrency. Its trading universe is predefined to 10 cryptocurrencies (defined in self.symbols_a).
 
@@ -153,7 +155,7 @@ A benchmark for the backtesting period is set to buying all the target cryptocur
 
 ![Benchmark of Strategy](QC%20Strats/lstm_closing_price_trailing_half/lstm_closing_price_trailing_half%20-%20Benchmark.png)
 
-#### Gradient Boosting Movement Prediction With Half Sell Trailing Stop Loss Strategy
+### Gradient Boosting Movement Prediction With Half Sell Trailing Stop Loss Strategy
 
 This strategy is similar to the previous one, however, it leverages a gradient boosting model that uses last hour's data to predict the current hour's movement in price. Every hour, it buys cryptocurrencies that are predicted to have an upwards movement. When buying, all available funds are used to open a position and are split equally among the cryptocurrencies to buy. Once a cryptocurrency dips 1.5% below a trailing stop loss, the strategy sells half of the assets available of the cryptocurrency. Its trading universe is predefined to 10 cryptocurrencies (defined in self.symbols_a).
 
@@ -162,3 +164,7 @@ This strategy is similar to the previous one, however, it leverages a gradient b
 A benchmark for the backtesting period is set to buying all the target cryptocurrencies at the start and holding until the end.
 
 ![Benchmark of Strategy](QC%20Strats/portfolio_movement_trailing_half/portfolio_movement_trailing_half%20-%20Benchmark.png)
+
+### Note
+
+Please note that there seems to be some error with the QuantConnect backtesting feature causing the results to be inflated. The strategies provided do not use any external sources (except for the models which are trained on data outside of the backtesting period) and thus currently the issue has not been conclusively identified. Use the strategies as reference for how to integrate the models into QuantConnect and as a comparison for what strategies work better than others.
