@@ -1,6 +1,10 @@
 # ML-Crypto-Public
 Exploration of machine learning techniques on cryptocurrency trading.
 
+### Note
+
+It has been observed that the QuantConnect backtesting platform, under the current configuration, appears to produce inflated performance results. The algorithmic trading strategies implemented herein rely solely on data internal to the platform, with the exception of pre-trained models derived from datasets external to the backtesting period. Consequently, the precise origin of this discrepancy remains undetermined without further investigation. It is imperative to underscore that these strategies are presented for academic research and exploratory purposes only, and are not intended for actual quantitative trading applications. They serve as illustrative examples for model training and integration into the QuantConnect framework.
+
 ## Introduction
 
 This README documents the process of using this repository to setup an LSTM model to predict future closing prices of cryptocurrencies. Sample algorithms for the QuantConnect platform have been provided in QC Strats.
@@ -164,7 +168,3 @@ This strategy is similar to the previous one, however, it leverages a gradient b
 A benchmark for the backtesting period is set to buying all the target cryptocurrencies at the start and holding until the end.
 
 ![Benchmark of Strategy](QC%20Strats/portfolio_movement_trailing_half/portfolio_movement_trailing_half%20-%20Benchmark.png)
-
-### Note
-
-Please note that there seems to be some error with the QuantConnect backtesting feature causing the results to be inflated. The strategies provided do not use any external sources (except for the models which are trained on data outside of the backtesting period) and thus currently the issue has not been conclusively identified. Use the strategies as reference for how to integrate the models into QuantConnect and as a comparison for what strategies work better than others.
