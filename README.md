@@ -1,6 +1,8 @@
 # ML-Crypto-Public
 Exploration of machine learning techniques on cryptocurrency trading.
 
+You can read the research project paper [here](Machine%20Learning-based%20Cryptocurrency%20Quantitative%20Trading.pdf).
+
 ### Note
 
 It has been observed that the QuantConnect backtesting platform, under the current configuration, appears to produce inflated performance results. The algorithmic trading strategies implemented herein rely solely on data internal to the platform, with the exception of pre-trained models derived from datasets external to the backtesting period. Consequently, the precise origin of this discrepancy remains undetermined without further investigation. It is imperative to underscore that these strategies are presented for academic research and exploratory purposes only, and are not intended for actual quantitative trading applications. They serve as illustrative examples for model training and integration into the QuantConnect framework.
